@@ -1,0 +1,66 @@
+#Version 1.2
+#Script created by Samantha Motz - Motz Technologies LLC- Sam@motztech.com. Tested on PowerShell 5 and Windows 10. May not work on lower versions. Use at your own risk. 
+#This script will check for a successful Magnus backup within the amount of days set. If it can't find one, it will check for warnings first and then errors. If no entries are found at all, it reports that as well.
+#This script assumes Magnus is installed on your system drive. If it's not, you need to edit the $DriveLetter variable.
+#In addition to running response code, this script creates a logs subdirectory in your install folder and created dated logs within. 
+
+#How far back to check logs, I recommend no less than 3 days. Less can cause error spam.
+
+$Days = 4
+
+
+#Enter your magnus software name here. No spaces at the start or end
+$MagnusName = "YOUR BACKUP NAME HERE"
+
+
+#end of custom variables
+
+$DriveLetter = (Get-WmiObject Win32_OperatingSystem).SystemDrive
+
+#Credit to Molly Kelly for WriteLog Function
+function WriteLog
+{
+    Param ([string]$LogString)
+    $LogFile = "$DriveLetter\Program files\$MagnusName\Logs\$Date-BackupLog.log"
+    $DateTime = "[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)
+    $LogMessage = "$Datetime $LogString"
+    Add-content $LogFile -value $LogMessage 
+}
+
+Mkdir "$DriveLetter\Program Files\$MagnusName\Logs" -ErrorAction SilentlyContinue
+
+$Date = (get-date -f yyyy-MM-dd)
+$MagnusStatus = (Get-EventLog -LogName application -Source "backup-tool.exe" -EntryType Information -After (Get-Date).AddDays(-$Days)| ?{$_.eventid -eq "51"} -ErrorAction SilentlyContinue)
+
+if (!$MagnusStatus) { 
+$MagnusWarn = (Get-EventLog -LogName application -Source "backup-tool.exe" -EntryType Warning -After (Get-Date).AddDays(-$Days)| ?{$_.eventid -eq "51"} -ErrorAction SilentlyContinue) 
+$MagnusError = (Get-EventLog -LogName application -Source "backup-tool.exe" -EntryType Error -After (Get-Date).AddDays(-$Days)| ?{$_.eventid -eq "51"} -ErrorAction SilentlyContinue)
+$MagnusCatchall =  (Get-EventLog -LogName application -Source "backup-tool.exe" -After (Get-Date).AddDays(-$Days) -ErrorAction SilentlyContinue)  
+
+if ($MagnusWarn) { writeLog "Backup warnings found"
+Write "Backup warnings found"
+#YOUR RESPONSE CODE HERE
+exit }
+
+else {
+if ($MagnusError)
+{
+WriteLog "Backup errors found"
+Write "Backup errors found"
+#YOUR RESPONSE CODE HERE
+exit
+}
+else
+{
+if (!$MagnusCatchall)
+{
+WriteLog "No Magnus events found, perhaps not running or system was offline"
+Write "No Magnus events found, perhaps not running or system was offline"
+#YOUR RESPONSE CODE HERE
+} 
+}}}
+
+if ($MagnusStatus) { writeLog "Successful backup found within the last $days days."
+write "Successful backup found"
+#YOUR RESPONSE CODE HERE (if wanted)
+}
