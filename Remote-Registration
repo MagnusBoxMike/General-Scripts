@@ -1,0 +1,10 @@
+## Installation Script for Windows
+
+This PowerShell one-liner downloads and silently installs the software from a Magnus Box specified server URL.
+
+### Usage
+
+Update the `server_url` placeholder with the your actual Magnus Box URL, ensuring you keep the `/dl/2` at the end of the URL.
+
+```powershell
+Invoke-WebRequest -Uri "https://server_url/dl/2" -OutFile "C:\install.exe"; Start-Process -FilePath "C:\install.exe" -ArgumentList "/S", "/LOBBY" -Wait
